@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Semana">
+<title>Mi Semana</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #f0f0f0;
+  --text2: #888;
+  --text3: #555;
+  --accent: #c8f55a;
+  --accent-dim: rgba(200,245,90,0.12);
+  --red: #ff5c5c;
+  --red-dim: rgba(255,92,92,0.12);
+  --amber: #ffb347;
+  --amber-dim: rgba(255,179,71,0.1);
+  --blue: #5cb8ff;
+  --blue-dim: rgba(92,184,255,0.1);
+  --pink: #ff7eb3;
+  --pink-dim: rgba(255,126,179,0.1);
+  --teal: #5cf5c8;
+  --teal-dim: rgba(92,245,200,0.1);
+  --purple: #b39dff;
+  --purple-dim: rgba(179,157,255,0.1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { background: var(--bg); }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: calc(80px + var(--safe-bottom));
+  padding-top: var(--safe-top);
+  overflow-x: hidden;
+}
+
+/* TOP BAR */
+.topbar {
+  padding: 16px 20px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: sticky;
+  top: var(--safe-top);
+  background: var(--bg);
+  z-index: 10;
+  border-bottom: 1px solid var(--border);
+}
+.topbar-left h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+.topbar-left p { font-size: 12px; color: var(--text2); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.streak-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 6px 12px;
+}
+.streak-chip .fire { font-size: 16px; }
+.streak-chip .num { font-size: 18px; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; }
+.streak-chip .lbl { font-size: 10px; color: var(--text2); line-height: 1.2; }
+
+/* PENALTY */
+.penalty-banner {
+  margin: 12px 16px 0;
+  background: var(--red-dim);
+  border: 1px solid rgba(255,92,92,0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: none;
+}
+.penalty-banner.show { display: block; }
+.penalty-banner p { font-size: 12px; color: var(--red); }
+.penalty-banner strong { font-weight: 600; }
+
+/* DAY SELECTOR */
+.day-scroll {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.day-scroll::-webkit-scrollbar { display: none; }
+.day-btn {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  min-width: 48px;
+  transition: all .2s;
+}
+.day-btn.active { border-color: var(--accent); background: var(--accent-dim); }
+.day-btn.complete { border-color: var(--accent); background: var(--accent-dim); }
+.day-btn.partial { border-color: var(--amber); background: var(--amber-dim); }
+.day-btn.today-marker { border-color: var(--blue); }
+.day-btn .dname { font-size: 11px; font-weight: 500; color: var(--text2); }
+.day-btn.active .dname, .day-btn.complete .dname { color: var(--accent); }
+.day-btn.partial .dname { color: var(--amber); }
+.day-btn .dpct { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+.day-btn.active .dpct { color: var(--accent); }
+
+/* PROGRESS */
+.prog-section { padding: 0 16px 12px; }
+.prog-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.prog-row span:first-child { font-size: 13px; color: var(--text2); }
+.prog-row span:last-child { font-size: 20px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.prog-track {
+  height: 6px; background: var(--surface2);
+  border-radius: 3px; overflow: hidden;
+}
+.prog-fill {
+  height: 100%; border-radius: 3px;
+  transition: width .5s cubic-bezier(.4,0,.2,1), background .3s;
+}
+
+/* WEEKLY SUMMARY */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.sum-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.sum-card .sv { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); }
+.sum-card .sl { font-size: 10px; color: var(--text2); margin-top: 2px; line-height: 1.3; }
+
+/* CAT BADGES */
+.cat-row {
+  display: flex; gap: 6px; padding: 0 16px 12px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.cat-row::-webkit-scrollbar { display: none; }
+.cat-badge {
+  flex-shrink: 0;
+  font-size: 11px; font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* SCHEDULE */
+.schedule { padding: 0 16px; display: flex; flex-direction: column; gap: 4px; }
+.block {
+  display: flex; align-items: stretch;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+  -webkit-user-select: none;
+}
+.block:active { transform: scale(0.98); }
+.block.done-b { opacity: 0.45; }
+.block.skip-b { opacity: 0.25; }
+.block .btime {
+  padding: 10px 10px;
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+  min-width: 88px;
+  background: var(--surface2);
+  display: flex; align-items: center;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.block .binfo { padding: 10px 12px; flex: 1; }
+.block .bname { font-size: 13px; font-weight: 500; color: var(--text); }
+.block .bsub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.block .bstatus { padding: 10px 10px; display: flex; align-items: center; }
+.bdot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); }
+.bdot.done { background: var(--accent); }
+.bdot.skip { background: var(--red); }
+
+/* LEFT BORDER COLORS */
+.blk-ex { border-left: 3px solid #5cf5c8; }
+.blk-rut { border-left: 3px solid #888; }
+.blk-meal { border-left: 3px solid #5cf5c8; }
+.blk-news { border-left: 3px solid #ffb347; }
+.blk-sch { border-left: 3px solid #b39dff; }
+.blk-mus { border-left: 3px solid #ff7eb3; }
+.blk-tran { border-left: 3px solid #ff5c5c; }
+.blk-cls { border-left: 3px solid #5cb8ff; }
+.blk-rest { border-left: 3px solid #555; }
+.blk-nap { border-left: 3px solid #5cb8ff; }
+.blk-sleep { border-left: 3px solid #378ADD; }
+
+/* SECTION LABEL */
+.section-label {
+  padding: 16px 16px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* MODAL */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  display: none; align-items: flex-end; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.overlay.open { display: flex; }
+.sheet {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  border: 1px solid var(--border2);
+  padding: 20px 20px calc(20px + var(--safe-bottom));
+  width: 100%; max-width: 500px;
+}
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.sheet h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.sheet p { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+.sheet-btns { display: flex; flex-direction: column; gap: 8px; }
+.sbtn {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s;
+}
+.sbtn:active { background: var(--border); }
+.sbtn.green { background: rgba(200,245,90,0.15); border-color: rgba(200,245,90,0.4); color: var(--accent); }
+.sbtn.red { background: var(--red-dim); border-color: rgba(255,92,92,0.4); color: var(--red); }
+.sbtn.close-btn { color: var(--text2); text-align: center; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: calc(90px + var(--safe-bottom));
+  left: 50%; transform: translateX(-50%);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity .3s;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 10px 0 calc(10px + var(--safe-bottom));
+  display: flex;
+  z-index: 50;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  cursor: pointer; padding: 4px 0;
+}
+.nav-btn .nicon { font-size: 20px; }
+.nav-btn .nlbl { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; }
+.nav-btn.active .nlbl { color: var(--accent); }
+
+/* VIEWS */
+.view { display: none; }
+.view.active { display: block; }
+
+/* STATS VIEW */
+.stats-wrap { padding: 16px; }
+.stats-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; letter-spacing: -0.3px; }
+.week-chart { display: flex; align-items: flex-end; gap: 8px; height: 80px; margin-bottom: 20px; }
+.bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar-col { width: 100%; background: var(--surface2); border-radius: 4px 4px 0 0; transition: height .4s; }
+.bar-lbl { font-size: 9px; color: var(--text3); font-family: 'DM Mono', monospace; }
+.stat-row { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.stat-row .slbl { font-size: 13px; color: var(--text2); }
+.stat-row .sval { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); }
+.identity-card {
+  background: var(--accent-dim);
+  border: 1px solid rgba(200,245,90,0.25);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+.identity-card h3 { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+.identity-card p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>Mi Semana</h1>
+    <p id="date-lbl"></p>
+  </div>
+  <div class="streak-chip">
+    <span class="fire" id="streak-icon">💤</span>
+    <span class="num" id="streak-num">0</span>
+    <span class="lbl">días<br>racha</span>
+  </div>
+</div>
+
+<div class="penalty-banner" id="penalty-banner">
+  <p><strong>Penalización activa:</strong> <span id="penalty-text"></span></p>
+</div>
+
+<!-- VIEW: HOY -->
+<div class="view active" id="view-hoy">
+  <div class="day-scroll" id="day-scroll"></div>
+
+  <div class="prog-section">
+    <div class="prog-row">
+      <span id="prog-day-lbl">Lunes</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="prog-track">
+      <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="sum-card"><div class="sv" id="ws-days">0</div><div class="sl">días perfectos</div></div>
+    <div class="sum-card"><div class="sv" id="ws-blocks">0</div><div class="sl">bloques hechos</div></div>
+    <div class="sum-card"><div class="sv" id="ws-news">0h</div><div class="sl">noticias</div></div>
+    <div class="sum-card"><div class="sv" id="ws-music">0h</div><div class="sl">música</div></div>
+  </div>
+
+  <div class="cat-row" id="cat-row"></div>
+  <div class="section-label" id="sched-label">Horario del día</div>
+  <div class="schedule" id="schedule"></div>
+  <div style="height:16px;"></div>
+</div>
+
+<!-- VIEW: STATS -->
+<div class="view" id="view-stats">
+  <div class="stats-wrap">
+    <div class="stats-title">Esta semana</div>
+    <div class="week-chart" id="week-chart"></div>
+    <div class="identity-card">
+      <h3>Tu identidad</h3>
+      <p>Eres alguien que produce música todos los días.<br>Eres alguien que construye su página de noticias.<br>Eres alguien que cumple lo que se propone.</p>
+    </div>
+    <div class="stat-row"><span class="slbl">Días perfectos (semana)</span><span class="sval" id="st-perfect">0</span></div>
+    <div class="stat-row"><span class="slbl">Racha actual</span><span class="sval" id="st-streak">0 días</span></div>
+    <div class="stat-row"><span class="slbl">Bloques completados</span><span class="sval" id="st-blocks">0</span></div>
+    <div class="stat-row"><span class="slbl">Bloques saltados</span><span class="sval" id="st-skipped" style="color:var(--red)">0</span></div>
+    <div class="stat-row"><span class="slbl">Horas de música</span><span class="sval" id="st-music">0h</span></div>
+    <div class="stat-row"><span class="slbl">Horas de noticias</span><span class="sval" id="st-news">0h</span></div>
+    <div style="height:8px;"></div>
+    <button onclick="resetWeek()" style="width:100%;padding:14px;background:var(--red-dim);border:1px solid rgba(255,92,92,0.3);border-radius:12px;color:var(--red);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Reiniciar semana</button>
+  </div>
+</div>
+
+<!-- MODAL SHEET -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 id="sh-title"></h3>
+    <p id="sh-sub"></p>
+    <div class="sheet-btns" id="sh-btns"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-btn active" id="nav-hoy" onclick="switchView('hoy')">
+    <span class="nicon">📅</span>
+    <span class="nlbl">Horario</span>
+  </div>
+  <div class="nav-btn" id="nav-stats" onclick="switchView('stats')">
+    <span class="nicon">📊</span>
+    <span class="nlbl">Stats</span>
+  </div>
+</div>
+
+<script>
+const DAYS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+
+const CAT_STYLE={
+  ex:{color:"#5cf5c8",bg:"rgba(92,245,200,0.12)",label:"Ejercicio"},
+  rut:{color:"#888",bg:"rgba(136,136,136,0.1)",label:"Rutina"},
+  meal:{color:"#5cf5c8",bg:"rgba(92,245,200,0.1)",label:"Comidas"},
+  news:{color:"#ffb347",bg:"rgba(255,179,71,0.12)",label:"Noticias"},
+  sch:{color:"#b39dff",bg:"rgba(179,157,255,0.12)",label:"Escuela"},
+  mus:{color:"#ff7eb3",bg:"rgba(255,126,179,0.12)",label:"Música"},
+  tran:{color:"#ff5c5c",bg:"rgba(255,92,92,0.1)",label:"Traslado"},
+  cls:{color:"#5cb8ff",bg:"rgba(92,184,255,0.1)",label:"Clases"},
+  rest:{color:"#555",bg:"rgba(85,85,85,0.1)",label:"Descanso"},
+  nap:{color:"#5cb8ff",bg:"rgba(92,184,255,0.1)",label:"Siesta"},
+  sleep:{color:"#378ADD",bg:"rgba(55,138,221,0.1)",label:"Sueño"},
+};
+
+const SCHEDULE={
+  "Lunes":{sum:{news:"2h",school:"2h",music:"1.5h"},blocks:[
+    {id:"l1",t:"5:00–7:00",l:"Ejercicio",s:"2h",cat:"ex",flex:false},
+    {id:"l2",t:"7:00–7:30",l:"Baño y arreglo",s:"30 min",cat:"rut",flex:false},
+    {id:"l3",t:"7:30–8:20",l:"Desayuno",s:"50 min",cat:"meal",flex:false},
+    {id:"l4",t:"8:20–8:30",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"l5",t:"8:30–10:30",l:"Página de noticias",s:"2h",cat:"news",flex:true},
+    {id:"l6",t:"10:30–12:30",l:"Escuela / tareas",s:"2h",cat:"sch",flex:true},
+    {id:"l7",t:"12:30–14:00",l:"Producción musical",s:"1.5h",cat:"mus",flex:true},
+    {id:"l8",t:"14:00–14:50",l:"Comida",s:"50 min",cat:"meal",flex:false},
+    {id:"l9",t:"14:50–15:05",l:"Arreglarse para salir",s:"15 min",cat:"rut",flex:false},
+    {id:"l10",t:"15:10",l:"Salida a uni",s:"Llegada ~4pm",cat:"tran",flex:false},
+    {id:"l11",t:"16:00–22:00",l:"Clases en la uni",s:"",cat:"cls",flex:false},
+    {id:"l12",t:"22:00–22:50",l:"Cena",s:"50 min",cat:"meal",flex:false},
+    {id:"l13",t:"22:50–23:00",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"l14",t:"23:00",l:"Dormir",s:"",cat:"sleep",flex:false},
+  ]},
+  "Martes":{sum:{news:"1.5h",school:"1.5h",music:"1h"},blocks:[
+    {id:"ma1",t:"5:00–7:00",l:"Ejercicio",s:"2h",cat:"ex",flex:false},
+    {id:"ma2",t:"7:00–8:30",l:"Clase en línea",s:"Online",cat:"cls",flex:false},
+    {id:"ma3",t:"8:30–9:00",l:"Baño y arreglo",s:"30 min",cat:"rut",flex:false},
+    {id:"ma4",t:"9:00–9:50",l:"Desayuno",s:"50 min",cat:"meal",flex:false},
+    {id:"ma5",t:"9:50–11:20",l:"Página de noticias",s:"1.5h",cat:"news",flex:true},
+    {id:"ma6",t:"11:20–12:50",l:"Escuela / tareas",s:"1.5h",cat:"sch",flex:true},
+    {id:"ma7",t:"12:50–14:00",l:"Producción musical",s:"1h 10min",cat:"mus",flex:true},
+    {id:"ma8",t:"14:00–14:50",l:"Comida",s:"50 min",cat:"meal",flex:false},
+    {id:"ma9",t:"14:50–15:05",l:"Arreglarse para salir",s:"15 min",cat:"rut",flex:false},
+    {id:"ma10",t:"15:10",l:"Salida a uni",s:"Llegada ~4pm",cat:"tran",flex:false},
+    {id:"ma11",t:"16:00–22:00",l:"Clases en la uni",s:"Suele salir antes",cat:"cls",flex:false},
+    {id:"ma12",t:"22:00–22:50",l:"Cena",s:"50 min",cat:"meal",flex:false},
+    {id:"ma13",t:"22:50–23:00",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"ma14",t:"23:00",l:"Dormir",s:"",cat:"sleep",flex:false},
+  ]},
+  "Miércoles":{sum:{news:"0h",school:"0.5h",music:"0.5h"},blocks:[
+    {id:"mi1",t:"5:00–6:30",l:"Ejercicio",s:"1.5h",cat:"ex",flex:false},
+    {id:"mi2",t:"6:30–7:00",l:"Baño y arreglo",s:"30 min",cat:"rut",flex:false},
+    {id:"mi3",t:"7:00–7:40",l:"Desayuno",s:"40 min",cat:"meal",flex:false},
+    {id:"mi4",t:"7:40–8:00",l:"Dientes y salir",s:"",cat:"rut",flex:false},
+    {id:"mi5",t:"8:00–9:00",l:"Traslado a uni",s:"",cat:"tran",flex:false},
+    {id:"mi6",t:"9:00–14:00",l:"Servicio becario",s:"",cat:"cls",flex:false},
+    {id:"mi7",t:"14:00–14:30",l:"Comida",s:"30 min rápida",cat:"meal",flex:false},
+    {id:"mi8",t:"14:30–15:00",l:"Siesta",s:"~20 min",cat:"nap",flex:false},
+    {id:"mi9",t:"15:00–15:30",l:"Escuela / tareas",s:"30 min",cat:"sch",flex:true},
+    {id:"mi10",t:"15:30–16:00",l:"Producción musical",s:"30 min",cat:"mus",flex:true},
+    {id:"mi11",t:"16:00–21:00",l:"Clases + última online",s:"Última 7–8:30 en camino",cat:"cls",flex:false},
+    {id:"mi12",t:"21:00–21:50",l:"Cena",s:"50 min",cat:"meal",flex:false},
+    {id:"mi13",t:"21:50–22:00",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"mi14",t:"22:00",l:"Dormir",s:"",cat:"sleep",flex:false},
+  ]},
+  "Jueves":{sum:{news:"2h",school:"2h",music:"3h"},blocks:[
+    {id:"j1",t:"5:00–7:00",l:"Ejercicio",s:"2h",cat:"ex",flex:false},
+    {id:"j2",t:"7:00–7:30",l:"Baño y arreglo",s:"30 min",cat:"rut",flex:false},
+    {id:"j3",t:"7:30–8:20",l:"Desayuno",s:"50 min",cat:"meal",flex:false},
+    {id:"j4",t:"8:20–8:30",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"j5",t:"8:30–10:30",l:"Página de noticias",s:"2h",cat:"news",flex:true},
+    {id:"j6",t:"10:30–12:30",l:"Escuela / tareas",s:"2h",cat:"sch",flex:true},
+    {id:"j7",t:"12:30–14:00",l:"Producción musical",s:"1.5h",cat:"mus",flex:true},
+    {id:"j8",t:"14:00–14:50",l:"Comida",s:"50 min",cat:"meal",flex:false},
+    {id:"j9",t:"14:50–15:05",l:"Arreglarse para salir",s:"15 min",cat:"rut",flex:false},
+    {id:"j10",t:"15:10",l:"Salida a uni",s:"Llegada ~4pm",cat:"tran",flex:false},
+    {id:"j11",t:"16:00–19:00",l:"Clases en la uni",s:"",cat:"cls",flex:false},
+    {id:"j12",t:"19:00–20:00",l:"Regreso a casa",s:"~1h tráfico",cat:"tran",flex:false},
+    {id:"j13",t:"20:00–21:30",l:"Producción musical",s:"1.5h",cat:"mus",flex:true},
+    {id:"j14",t:"21:30–22:20",l:"Cena",s:"50 min",cat:"meal",flex:false},
+    {id:"j15",t:"22:20–22:30",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"j16",t:"22:30",l:"Dormir",s:"",cat:"sleep",flex:false},
+  ]},
+  "Viernes":{sum:{news:"2h",school:"2h",music:"7h"},blocks:[
+    {id:"v1",t:"5:00–7:00",l:"Ejercicio",s:"2h",cat:"ex",flex:false},
+    {id:"v2",t:"7:00–7:30",l:"Baño y arreglo",s:"30 min",cat:"rut",flex:false},
+    {id:"v3",t:"7:30–8:20",l:"Desayuno",s:"50 min",cat:"meal",flex:false},
+    {id:"v4",t:"8:20–8:30",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"v5",t:"8:30–10:30",l:"Página de noticias",s:"2h",cat:"news",flex:true},
+    {id:"v6",t:"10:30–12:30",l:"Escuela / tareas",s:"2h",cat:"sch",flex:true},
+    {id:"v7",t:"12:30–20:30",l:"Producción musical",s:"8h",cat:"mus",flex:true},
+    {id:"v8",t:"20:30–21:20",l:"Cena",s:"50 min",cat:"meal",flex:false},
+    {id:"v9",t:"21:20–21:30",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"v10",t:"21:30–23:00",l:"Bajar el ritmo",s:"Libre",cat:"rest",flex:false},
+    {id:"v11",t:"23:00",l:"Dormir",s:"",cat:"sleep",flex:false},
+  ]},
+  "Sábado":{sum:{news:"2h",school:"1.5h",music:"7h"},blocks:[
+    {id:"s1",t:"7:00–8:00",l:"Ejercicio",s:"1h",cat:"ex",flex:false},
+    {id:"s2",t:"8:00–8:30",l:"Baño y arreglo",s:"30 min",cat:"rut",flex:false},
+    {id:"s3",t:"8:30–9:20",l:"Desayuno",s:"50 min",cat:"meal",flex:false},
+    {id:"s4",t:"9:20–11:20",l:"Página de noticias",s:"2h",cat:"news",flex:true},
+    {id:"s5",t:"11:20–12:50",l:"Escuela (pendientes)",s:"1.5h",cat:"sch",flex:true},
+    {id:"s6",t:"12:50–20:30",l:"Producción musical",s:"7h 40min",cat:"mus",flex:true},
+    {id:"s7",t:"20:30–21:20",l:"Cena",s:"50 min",cat:"meal",flex:false},
+    {id:"s8",t:"21:20–21:30",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"s9",t:"21:30–23:00",l:"Noche libre",s:"O salida si hay planes",cat:"rest",flex:false},
+    {id:"s10",t:"23:00",l:"Dormir",s:"",cat:"sleep",flex:false},
+  ]},
+  "Domingo":{sum:{news:"1h",school:"0h",music:"2h"},blocks:[
+    {id:"d1",t:"7:00–8:00",l:"Ejercicio suave",s:"Caminata o yoga",cat:"ex",flex:true},
+    {id:"d2",t:"8:00–8:30",l:"Baño y arreglo",s:"30 min",cat:"rut",flex:false},
+    {id:"d3",t:"8:30–10:00",l:"Desayuno",s:"1.5h — puede ser fuera",cat:"meal",flex:false},
+    {id:"d4",t:"10:00–11:00",l:"Página de noticias",s:"1h ligera",cat:"news",flex:true},
+    {id:"d5",t:"11:00–13:00",l:"Producción musical",s:"Solo si hay ganas",cat:"mus",flex:true},
+    {id:"d6",t:"13:00–14:00",l:"Tiempo libre / familia",s:"",cat:"rest",flex:true},
+    {id:"d7",t:"14:00–14:50",l:"Comida",s:"50 min",cat:"meal",flex:false},
+    {id:"d8",t:"14:50–18:00",l:"Descanso o familia",s:"",cat:"rest",flex:true},
+    {id:"d9",t:"18:00–19:30",l:"Preparar la semana",s:"Revisar pendientes",cat:"sch",flex:true},
+    {id:"d10",t:"19:30–20:30",l:"Producción musical / libre",s:"",cat:"mus",flex:true},
+    {id:"d11",t:"20:30–21:20",l:"Cena",s:"50 min",cat:"meal",flex:false},
+    {id:"d12",t:"21:20–21:30",l:"Dientes",s:"",cat:"rut",flex:false},
+    {id:"d13",t:"21:30–22:00",l:"Bajar el ritmo",s:"",cat:"rest",flex:false},
+    {id:"d14",t:"22:00",l:"Dormir",s:"",cat:"sleep",flex:false},
+  ]}
+};
+
+// STATE (localStorage)
+function loadState(){
+  try{
+    const raw=localStorage.getItem("semana_state");
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return buildDefaultState();
+}
+
+function buildDefaultState(){
+  const s={streak:0,penaltyMins:0,weekData:{},savedWeek:getCurrentWeekKey()};
+  DAYS.forEach(d=>{
+    s.weekData[d]={blocks:{},overrides:{}};
+    SCHEDULE[d].blocks.forEach(b=>{s.weekData[d].blocks[b.id]="pending";});
+  });
+  return s;
+}
+
+function getCurrentWeekKey(){
+  const now=new Date();
+  const day=now.getDay();
+  const monday=new Date(now);
+  monday.setDate(now.getDate()-(day===0?6:day-1));
+  return monday.toISOString().slice(0,10);
+}
+
+function saveState(){
+  localStorage.setItem("semana_state",JSON.stringify(appState));
+}
+
+let appState=loadState();
+
+// Auto-reset if new week
+if(appState.savedWeek!==getCurrentWeekKey()){
+  appState=buildDefaultState();
+  saveState();
+}
+
+let activeDay=getTodayName();
+let currentView="hoy";
+let activeModalId=null;
+
+function getTodayName(){
+  const map={1:"Lunes",2:"Martes",3:"Miércoles",4:"Jueves",5:"Viernes",6:"Sábado",0:"Domingo"};
+  return map[new Date().getDay()]||"Lunes";
+}
+
+function dayProgress(d){
+  const flex=SCHEDULE[d].blocks.filter(b=>b.flex);
+  if(!flex.length)return 100;
+  const done=flex.filter(b=>appState.weekData[d].blocks[b.id]==="done").length;
+  return Math.round((done/flex.length)*100);
+}
+
+function isDayComplete(d){return dayProgress(d)===100;}
+
+function computeStreak(){
+  const today=getTodayName();
+  const todayIdx=DAYS.indexOf(today);
+  let s=0;
+  for(let i=todayIdx;i>=0;i--){
+    if(isDayComplete(DAYS[i]))s++;
+    else break;
+  }
+  return s;
+}
+
+function updateStreakUI(){
+  const s=computeStreak();
+  appState.streak=s;
+  document.getElementById("streak-num").textContent=s;
+  document.getElementById("streak-icon").textContent=s>=7?"🏆":s>=5?"🔥":s>=3?"⚡":s>=1?"✓":"💤";
+}
+
+function updatePenaltyUI(){
+  const b=document.getElementById("penalty-banner");
+  if(appState.penaltyMins>0){
+    b.classList.add("show");
+    document.getElementById("penalty-text").textContent="-"+appState.penaltyMins+" min de producción musical hoy (por saltarte bloques ayer)";
+  } else {
+    b.classList.remove("show");
+  }
+}
+
+function renderDaySelector(){
+  const today=getTodayName();
+  const html=DAYS.map(d=>{
+    const pct=dayProgress(d);
+    const cls=[
+      "day-btn",
+      d===activeDay?"active":"",
+      d===today&&d!==activeDay?"today-marker":"",
+      isDayComplete(d)&&d!==activeDay?"complete":"",
+      pct>0&&pct<100&&d!==activeDay?"partial":"",
+    ].filter(Boolean).join(" ");
+    return `<div class="${cls}" onclick="switchDay('${d}')">
+      <div class="dname">${d.slice(0,3)}</div>
+      <div class="dpct">${pct}%</div>
+    </div>`;
+  }).join("");
+  document.getElementById("day-scroll").innerHTML=html;
+}
+
+function renderProgress(){
+  const pct=dayProgress(activeDay);
+  document.getElementById("prog-day-lbl").textContent=activeDay;
+  document.getElementById("prog-pct").textContent=pct+"%";
+  const fill=document.getElementById("prog-fill");
+  fill.style.width=pct+"%";
+  fill.style.background=pct===100?"#c8f55a":pct>=60?"#ffb347":"#ff5c5c";
+}
+
+function renderWeekSummary(){
+  let perfect=0,blocks=0,newsB=0,musB=0;
+  DAYS.forEach(d=>{
+    if(isDayComplete(d))perfect++;
+    SCHEDULE[d].blocks.forEach(b=>{
+      if(b.flex&&appState.weekData[d].blocks[b.id]==="done"){
+        blocks++;
+        if(b.cat==="news")newsB++;
+        if(b.cat==="mus")musB++;
+      }
+    });
+  });
+  document.getElementById("ws-days").textContent=perfect;
+  document.getElementById("ws-blocks").textContent=blocks;
+  document.getElementById("ws-news").textContent=newsB*1.5+"h";
+  document.getElementById("ws-music").textContent=musB*1.5+"h";
+}
+
+function renderCatBadges(){
+  const d=SCHEDULE[activeDay];
+  const cats=[...new Set(d.blocks.filter(b=>b.flex).map(b=>b.cat))];
+  document.getElementById("cat-row").innerHTML=cats.map(c=>{
+    const st=CAT_STYLE[c]||{color:"#888",bg:"rgba(136,136,136,0.1)",label:c};
+    return `<div class="cat-badge" style="background:${st.bg};color:${st.color};">${st.label}</div>`;
+  }).join("");
+}
+
+function renderSchedule(){
+  const blocks=SCHEDULE[activeDay].blocks;
+  document.getElementById("sched-label").textContent=activeDay+" — horario";
+  document.getElementById("schedule").innerHTML=blocks.map(b=>{
+    const status=appState.weekData[activeDay].blocks[b.id]||"pending";
+    const ov=appState.weekData[activeDay].overrides&&appState.weekData[activeDay].overrides[b.id];
+    const label=ov?ov.label:b.l;
+    const sub=ov?ov.sub:b.s;
+    const dc=status==="done"?" done-b":status==="skipped"?" skip-b":"";
+    const dotCls=status==="done"?"done":status==="skipped"?"skip":"";
+    return `<div class="block blk-${b.cat}${dc}" onclick="openModal('${b.id}')">
+      <div class="btime">${b.t}</div>
+      <div class="binfo">
+        <div class="bname">${label}</div>
+        ${sub?`<div class="bsub">${sub}</div>`:""}
+      </div>
+      <div class="bstatus"><div class="bdot ${dotCls}"></div></div>
+    </div>`;
+  }).join("");
+}
+
+function renderStatsView(){
+  const s=computeStreak();
+  document.getElementById("st-streak").textContent=s+" días";
+  let perfect=0,blocks=0,skipped=0,newsB=0,musB=0;
+  DAYS.forEach(d=>{
+    if(isDayComplete(d))perfect++;
+    SCHEDULE[d].blocks.forEach(b=>{
+      const st=appState.weekData[d].blocks[b.id];
+      if(b.flex){
+        if(st==="done"){blocks++;if(b.cat==="news")newsB++;if(b.cat==="mus")musB++;}
+        if(st==="skipped")skipped++;
+      }
+    });
+  });
+  document.getElementById("st-perfect").textContent=perfect;
+  document.getElementById("st-blocks").textContent=blocks;
+  document.getElementById("st-skipped").textContent=skipped;
+  document.getElementById("st-music").textContent=(musB*1.5).toFixed(1)+"h";
+  document.getElementById("st-news").textContent=(newsB*1.5).toFixed(1)+"h";
+
+  // Bar chart
+  const chart=document.getElementById("week-chart");
+  chart.innerHTML=DAYS.map(d=>{
+    const pct=dayProgress(d);
+    const col=isDayComplete(d)?"#c8f55a":pct>0?"#ffb347":"#1e1e1e";
+    const h=Math.max(4,Math.round(pct*0.7));
+    return `<div class="bar-wrap">
+      <div class="bar-col" style="height:${h}px;background:${col};"></div>
+      <div class="bar-lbl">${d.slice(0,2)}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderAll(){
+  updateStreakUI();
+  updatePenaltyUI();
+  renderDaySelector();
+  renderProgress();
+  renderWeekSummary();
+  renderCatBadges();
+  renderSchedule();
+
+  const now=new Date();
+  document.getElementById("date-lbl").textContent=now.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+}
+
+function switchDay(d){
+  activeDay=d;
+  renderAll();
+}
+
+function switchView(v){
+  currentView=v;
+  document.getElementById("view-hoy").classList.toggle("active",v==="hoy");
+  document.getElementById("view-stats").classList.toggle("active",v==="stats");
+  document.getElementById("nav-hoy").classList.toggle("active",v==="hoy");
+  document.getElementById("nav-stats").classList.toggle("active",v==="stats");
+  if(v==="stats")renderStatsView();
+}
+
+function openModal(id){
+  const b=SCHEDULE[activeDay].blocks.find(x=>x.id===id);
+  if(!b)return;
+  activeModalId=id;
+  const status=appState.weekData[activeDay].blocks[id]||"pending";
+  document.getElementById("sh-title").textContent=b.l;
+  document.getElementById("sh-sub").textContent=b.flex?"Bloque flexible — elige qué hacer con él.":"Bloque fijo del horario.";
+  let btns="";
+  if(status!=="done") btns+=`<button class="sbtn green" onclick="doAction('done')">✓ Completado</button>`;
+  if(status==="done") btns+=`<button class="sbtn" onclick="doAction('pending')">Desmarcar</button>`;
+  if(b.flex){
+    if(status!=="skipped") btns+=`<button class="sbtn red" onclick="doAction('skipped')">✗ Saltar (–30 min música mañana)</button>`;
+    btns+=`<button class="sbtn" onclick="doReassign('news','Página de noticias')">→ Reasignar a Noticias</button>`;
+    btns+=`<button class="sbtn" onclick="doReassign('sch','Escuela / tareas')">→ Reasignar a Escuela</button>`;
+    btns+=`<button class="sbtn" onclick="doReassign('mus','Producción musical')">→ Reasignar a Música</button>`;
+    btns+=`<button class="sbtn" onclick="doReassign('rest','Descanso')">→ Reasignar a Descanso</button>`;
+  }
+  btns+=`<button class="sbtn close-btn" onclick="closeModal()">Cerrar</button>`;
+  document.getElementById("sh-btns").innerHTML=btns;
+  document.getElementById("overlay").classList.add("open");
+}
+
+function doAction(action){
+  if(!activeModalId)return;
+  const prev=appState.weekData[activeDay].blocks[activeModalId];
+  appState.weekData[activeDay].blocks[activeModalId]=action;
+  if(action==="skipped"){
+    appState.penaltyMins=(appState.penaltyMins||0)+30;
+    showToast("Saltado — racha en riesgo ⚠️");
+  } else if(action==="done"){
+    showToast("✓ Completado");
+    if(isDayComplete(activeDay)) setTimeout(()=>showToast("🔥 Día perfecto!"),600);
+  } else if(action==="pending"&&prev==="skipped"){
+    appState.penaltyMins=Math.max(0,(appState.penaltyMins||0)-30);
+  }
+  saveState();
+  closeModal();
+  renderAll();
+}
+
+function doReassign(cat,label){
+  if(!activeModalId)return;
+  if(!appState.weekData[activeDay].overrides) appState.weekData[activeDay].overrides={};
+  appState.weekData[activeDay].overrides[activeModalId]={label,sub:"Reasignado"};
+  const b=SCHEDULE[activeDay].blocks.find(x=>x.id===activeModalId);
+  if(b) b.cat=cat;
+  appState.weekData[activeDay].blocks[activeModalId]="pending";
+  showToast("Reasignado a "+label);
+  saveState();
+  closeModal();
+  renderAll();
+}
+
+function closeModal(){
+  document.getElementById("overlay").classList.remove("open");
+  activeModalId=null;
+}
+
+function resetWeek(){
+  if(!confirm("¿Seguro que quieres reiniciar toda la semana?"))return;
+  appState=buildDefaultState();
+  saveState();
+  renderAll();
+  showToast("Semana reiniciada");
+}
+
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove("show"),2000);
+}
+
+document.getElementById("overlay").addEventListener("click",function(e){
+  if(e.target===this)closeModal();
+});
+
+renderAll();
+</script>
+</body>
+</html>
